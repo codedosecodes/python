@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 40 40" role="img" aria-label="SignFlow">
+  <rect width="40" height="40" rx="8" fill="#1769e0"/>
+  <path d="M10 11.5h20M10 20h13M10 28.5h9" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round"/>
+  <path d="m24 27 2.5 2.5L32 23" fill="none" stroke="#fff" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"/>
+</svg>
+

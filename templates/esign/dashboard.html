@@ -1,0 +1,38 @@
+{% extends "base.html" %}
+{% block title %}Home · {{ brand.name }}{% endblock %}
+{% block content %}
+<div class="page-heading">
+  <div><p class="eyebrow">{{ organization.name }}</p><h1>Welcome back, {{ user.first_name|default:"there" }}</h1><p>Send, track, and manage agreements from one workspace.</p></div>
+  <form method="post" action="{% url 'envelope_create' %}">{% csrf_token %}<button class="button button-primary" type="submit">Start <span aria-hidden="true">＋</span></button></form>
+</div>
+
+<section aria-labelledby="quick-actions-title">
+  <div class="section-heading"><h2 id="quick-actions-title">Quick actions</h2></div>
+  <div class="quick-actions">
+    <article><span class="action-icon send" aria-hidden="true">↗</span><div><h3>Send an envelope</h3><p>Upload documents and request signatures.</p></div><form method="post" action="{% url 'envelope_create' %}">{% csrf_token %}<button>Send</button></form></article>
+    <article><span class="action-icon sign" aria-hidden="true">✎</span><div><h3>Sign a document</h3><p>Add your signature to your own document.</p></div><form method="post" action="{% url 'self_sign_create' %}">{% csrf_token %}<button>Sign</button></form></article>
+    <article><span class="action-icon template" aria-hidden="true">▤</span><div><h3>Use a template</h3><p>Start from a reusable agreement.</p></div><button disabled title="Available after templates are implemented">Browse</button></article>
+  </div>
+</section>
+
+<section aria-labelledby="overview-title">
+  <div class="section-heading"><h2 id="overview-title">Envelope overview</h2><span>All time</span></div>
+  <div class="metric-grid">
+    <article><span class="metric-marker waiting"></span><p>Waiting for others</p><strong>{{ waiting_count }}</strong><small>Sent and in progress</small></article>
+    <article><span class="metric-marker action"></span><p>Action required</p><strong>{{ action_count }}</strong><small>Drafts to finish</small></article>
+    <article><span class="metric-marker expiring"></span><p>Expiring soon</p><strong>{{ expiring_count }}</strong><small>Active expiration dates</small></article>
+    <article><span class="metric-marker complete"></span><p>Completed</p><strong>{{ completed_count }}</strong><small>Fully signed</small></article>
+  </div>
+</section>
+
+<section class="activity" aria-labelledby="activity-title">
+  <div class="section-heading"><h2 id="activity-title">Recent activity</h2></div>
+  {% if recent_envelopes %}
+  <div class="table-wrap"><table><thead><tr><th>Name</th><th>Status</th><th>Recipients</th><th>Last change</th><th>Owner</th></tr></thead><tbody>
+    {% for envelope in recent_envelopes %}<tr><td><strong>{{ envelope.subject }}</strong></td><td><span class="status status-{{ envelope.status|lower }}">{{ envelope.get_status_display }}</span></td><td>{{ envelope.recipients.count }}</td><td>{{ envelope.updated_at|timesince }} ago</td><td>{{ envelope.sender.get_full_name|default:envelope.sender.email }}</td></tr>{% endfor %}
+  </tbody></table></div>
+  {% else %}
+  <div class="empty-state"><div class="empty-document" aria-hidden="true"><span></span><span></span><span></span></div><h3>No envelope activity yet</h3><p>Create your first envelope to upload a PDF and request signatures.</p></div>
+  {% endif %}
+</section>
+{% endblock %}

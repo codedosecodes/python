@@ -1,0 +1,40 @@
+name: CI
+on:
+  push:
+  pull_request:
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:17-alpine
+        env:
+          POSTGRES_DB: signflow_test
+          POSTGRES_USER: signflow
+          POSTGRES_PASSWORD: signflow
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U signflow"
+          --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DJANGO_SECRET_KEY: ci-only-secret
+      DJANGO_DEBUG: "false"
+      DJANGO_ALLOWED_HOSTS: localhost,testserver
+      DATABASE_URL: postgresql://signflow:signflow@localhost:5432/signflow_test
+      POSTGRES_DB: signflow_test
+      POSTGRES_USER: signflow
+      POSTGRES_PASSWORD: signflow
+      POSTGRES_HOST: localhost
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+          cache: pip
+      - run: pip install -r requirements.txt ruff
+      - run: ruff format --check esign signflow tests manage.py
+      - run: ruff check esign signflow tests manage.py
+      - run: python manage.py makemigrations --check --dry-run
+      - run: python manage.py migrate --noinput
+      - run: python manage.py test
+      - run: python manage.py check --deploy

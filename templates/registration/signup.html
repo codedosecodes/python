@@ -1,0 +1,14 @@
+{% extends "base.html" %}
+{% block title %}Create account · {{ brand.name }}{% endblock %}
+{% block main_class %}auth-page{% endblock %}
+{% block content %}<section class="auth-card auth-card-wide">
+  <a class="auth-brand" href="/"><img src="/static/{{ brand.logo_path }}" alt="" width="40" height="40"><span>{{ brand.name }}</span></a>
+  <h1>Create your workspace</h1><p class="auth-intro">Start preparing and tracking secure agreements.</p>
+  {% if form.non_field_errors %}<div class="form-alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  <form method="post" novalidate>{% csrf_token %}
+    {% for field in form %}<div class="form-field"><label for="{{ field.id_for_label }}">{{ field.label }}</label>{{ field }}{% if field.help_text %}<small class="help-text">{{ field.help_text|safe }}</small>{% endif %}{{ field.errors }}</div>{% endfor %}
+    <button class="button button-primary button-full" type="submit">Create account</button>
+  </form>
+  <p class="auth-footer">Already have an account? <a href="{% url 'login' %}">Log in</a></p>
+</section>{% endblock %}
+
