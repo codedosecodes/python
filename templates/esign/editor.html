@@ -1,0 +1,54 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Add fields · {{ brand.name }}{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="{% static 'css/editor.css' %}">{% endblock %}
+{% block main_class %}editor-page{% endblock %}
+{% block content %}
+<header class="editor-header">
+  <a href="{% url 'envelope_edit' envelope.id %}" class="editor-back" aria-label="Back to envelope">‹</a>
+  <div><strong>{{ envelope.subject }}</strong><small>Field placement</small></div>
+  <div class="editor-toolbar" role="toolbar" aria-label="Document controls">
+    <button type="button" data-action="previous-page" aria-label="Previous page">‹</button>
+    <span><input id="current-page" value="1" inputmode="numeric" aria-label="Current page"> / <span id="page-count">—</span></span>
+    <button type="button" data-action="next-page" aria-label="Next page">›</button>
+    <span class="toolbar-divider"></span>
+    <button type="button" data-action="zoom-out" aria-label="Zoom out">−</button>
+    <button type="button" id="zoom-label" data-action="fit-width">Fit width</button>
+    <button type="button" data-action="zoom-in" aria-label="Zoom in">＋</button>
+  </div>
+  <form method="post" action="{% url 'envelope_send' envelope.id %}">{% csrf_token %}<button class="button button-primary" type="submit">Send</button></form>
+</header>
+{% if editor_documents and envelope.recipients.exists %}
+<div class="professional-editor" id="pdf-editor" data-envelope-id="{{ envelope.id }}">
+  <aside class="editor-sidebar palette-panel" aria-label="Field palette">
+    <label for="recipient-select">Fields for</label>
+    <select id="recipient-select">{% for recipient in envelope.recipients.all %}<option value="{{ recipient.id }}" data-color="{{ recipient.color }}">{{ recipient.name }}</option>{% endfor %}</select>
+    <h2>Standard fields</h2>
+    <div class="palette-list">
+      {% for value,label in field_choices %}<button type="button" draggable="true" data-field-type="{{ value }}"><span aria-hidden="true">＋</span>{{ label }}</button>{% endfor %}
+    </div>
+  </aside>
+  <aside class="thumbnail-panel" aria-label="Page thumbnails"><div id="document-tabs"></div><div id="thumbnail-list"></div></aside>
+  <main class="pdf-workspace" id="pdf-workspace" tabindex="0">
+    <div class="pdf-loading" id="pdf-loading" role="status"><span class="spinner"></span><strong>Loading document</strong><small>Preparing pages and fields…</small></div>
+    <div class="pdf-error" id="pdf-error" hidden><strong>We couldn't display this PDF.</strong><span>Download it to verify that the file is valid, then replace the document.</span></div>
+    <div id="pdf-pages" aria-label="PDF pages"></div>
+  </main>
+  <aside class="editor-sidebar property-panel" id="property-panel">
+    <div class="properties-empty"><h2>Field properties</h2><p>Select a field to configure its recipient, label, validation, and dimensions.</p></div>
+    <form id="property-form" hidden>
+      <div class="property-heading"><h2 id="property-title">Field</h2><button type="button" data-property-action="delete" class="danger">Delete</button></div>
+      <label>Recipient<select name="recipient">{% for recipient in envelope.recipients.all %}<option value="{{ recipient.id }}">{{ recipient.name }}</option>{% endfor %}</select></label>
+      <label>Label<input name="label" maxlength="180"></label>
+      <label class="toggle-row"><input name="required" type="checkbox"> Required</label>
+      <fieldset data-text-properties><legend>Validation</legend><label>Type<select name="validation_type"><option value="none">None</option><option value="email">Email</option><option value="number">Number</option><option value="date">Date</option></select></label><label>Maximum length<input name="max_length" type="number" min="1" max="10000"></label></fieldset>
+      <fieldset data-option-properties hidden><legend>Options</legend><label>One option per line<textarea name="options" rows="6"></textarea></label></fieldset>
+      <div class="dimension-grid"><label>X<input name="x" readonly></label><label>Y<input name="y" readonly></label><label>W<input name="width" readonly></label><label>H<input name="height" readonly></label></div>
+      <p class="save-state" id="property-save-state" aria-live="polite"></p>
+    </form>
+  </aside>
+</div>
+{{ editor_documents|json_script:"editor-documents" }}{{ editor_fields|json_script:"editor-fields" }}
+<form id="create-field-form" method="post" action="{% url 'envelope_editor' envelope.id %}" hidden>{% csrf_token %}<input name="envelope_document"><input name="recipient"><input name="field_type"><input name="page_number"><input name="x"><input name="y"><input name="width"><input name="height"><input name="required" value="on"><input name="label"></form>
+<script type="module" src="{% static 'js/pdf_editor.js' %}"></script>
+{% else %}<div class="empty-state"><h3>Documents and recipients required</h3><p>Add at least one PDF and recipient before placing fields.</p><a class="button" href="{% url 'envelope_edit' envelope.id %}">Return to envelope</a></div>{% endif %}
+{% endblock %}

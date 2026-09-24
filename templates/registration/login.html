@@ -1,0 +1,16 @@
+{% extends "base.html" %}
+{% block title %}Log in · {{ brand.name }}{% endblock %}
+{% block main_class %}auth-page{% endblock %}
+{% block content %}<section class="auth-card">
+  <a class="auth-brand" href="/"><img src="/static/{{ brand.logo_path }}" alt="" width="40" height="40"><span>{{ brand.name }}</span></a>
+  <h1>Welcome back</h1><p class="auth-intro">Log in to manage your agreements.</p>
+  {% if form.non_field_errors %}<div class="form-alert" role="alert">{{ form.non_field_errors }}</div>{% endif %}
+  <form method="post" novalidate>{% csrf_token %}
+    <div class="form-field"><label for="id_username">Email address</label><input id="id_username" name="username" type="email" autocomplete="email" autofocus required value="{{ form.username.value|default:'' }}">{{ form.username.errors }}</div>
+    <div class="form-field"><div class="label-row"><label for="id_password">Password</label><a href="{% url 'password_reset' %}">Forgot password?</a></div><input id="id_password" name="password" type="password" autocomplete="current-password" required>{{ form.password.errors }}</div>
+    {% if next %}<input type="hidden" name="next" value="{{ next }}">{% endif %}
+    <button class="button button-primary button-full" type="submit">Log in</button>
+  </form>
+  <p class="auth-footer">New to {{ brand.name }}? <a href="{% url 'signup' %}">Create an account</a></p>
+</section>{% endblock %}
+

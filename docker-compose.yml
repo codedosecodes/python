@@ -1,0 +1,32 @@
+services:
+  web:
+    build: .
+    command: sh -c "python manage.py migrate && gunicorn signflow.wsgi:application --bind 0.0.0.0:8000 --reload"
+    ports: ["8000:8000"]
+    volumes: [".:/app", "private_documents:/app/private_uploads"]
+    environment:
+      DJANGO_DEBUG: "true"
+      DJANGO_SECRET_KEY: local-compose-secret-change-me
+      DATABASE_URL: postgresql://signflow:signflow@postgres:5432/signflow
+      POSTGRES_DB: signflow
+      POSTGRES_USER: signflow
+      POSTGRES_PASSWORD: signflow
+      POSTGRES_HOST: postgres
+    depends_on:
+      postgres:
+        condition: service_healthy
+  postgres:
+    image: postgres:17-alpine
+    environment:
+      POSTGRES_DB: signflow
+      POSTGRES_USER: signflow
+      POSTGRES_PASSWORD: signflow
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U signflow"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+    volumes: ["postgres_data:/var/lib/postgresql/data"]
+volumes:
+  postgres_data:
+  private_documents:

@@ -1,0 +1,55 @@
+{% load static %}
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="theme-color" content="{{ brand.primary_color }}">
+  <title>{% block title %}{{ brand.name }}{% endblock %}</title>
+  <link rel="icon" href="{% static brand.logo_path %}" type="image/svg+xml">
+  <link rel="stylesheet" href="{% static 'css/app.css' %}">
+  {% block head_extra %}{% endblock %}
+</head>
+<body>
+  <a class="skip-link" href="#main-content">Skip to main content</a>
+  {% if user.is_authenticated %}
+  <header class="app-header">
+    <a class="brand" href="{% url 'dashboard' %}" aria-label="{{ brand.name }} home">
+      <img src="{% static brand.logo_path %}" alt="" width="32" height="32">
+      <span>{{ brand.name }}</span>
+    </a>
+    <div class="workspace" aria-label="Current workspace">
+      <span class="workspace-label">Workspace</span>
+      <strong>{{ request.organization.name|default:"No workspace" }}</strong>
+    </div>
+    <form class="global-search" role="search" action="{% url 'global_search' %}" method="get">
+      <label class="sr-only" for="global-query">Search envelopes and documents</label>
+      <svg aria-hidden="true" viewBox="0 0 24 24"><path d="m21 21-4.3-4.3m2.3-5.2a7.5 7.5 0 1 1-15 0 7.5 7.5 0 0 1 15 0Z"/></svg>
+      <input id="global-query" name="q" type="search" placeholder="Search envelopes and documents">
+    </form>
+    <div class="header-actions">
+      <a class="icon-button" href="mailto:{{ brand.support_email }}" aria-label="Help">?</a>
+      <a class="icon-button notification-button" href="{% url 'notifications' %}" aria-label="Notifications{% if unread_notifications %}, {{ unread_notifications }} unread{% endif %}">
+        <svg aria-hidden="true" viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9ZM10 21h4"/></svg>
+        {% if unread_notifications %}<span class="notification-dot"></span>{% endif %}
+      </a>
+      <div class="account-summary">
+        <span class="avatar" aria-hidden="true">{{ user.first_name|first|default:user.email|first|upper }}</span>
+        <span><strong>{{ user.get_full_name|default:user.email }}</strong><small>{{ user.email }}</small></span>
+      </div>
+      <form method="post" action="{% url 'logout' %}">{% csrf_token %}<button class="text-button" type="submit">Log out</button></form>
+    </div>
+  </header>
+  <nav class="primary-nav" aria-label="Primary navigation">
+    <a class="active" href="{% url 'dashboard' %}" aria-current="page">Home</a>
+    <a href="{% url 'manage' %}">Manage</a>
+    <a href="{% url 'templates' %}">Templates</a>
+    <span class="nav-disabled" title="Coming in Sprint 2">Activity</span>
+    <a href="{% url 'contacts' %}">Contacts</a>
+    <a href="{% url 'settings' %}">Settings</a>
+  </nav>
+  {% endif %}
+  {% if messages %}<div class="messages" aria-live="polite">{% for message in messages %}<p class="message {{ message.tags }}">{{ message }}</p>{% endfor %}</div>{% endif %}
+  <main id="main-content" class="{% block main_class %}app-main{% endblock %}">{% block content %}{% endblock %}</main>
+</body>
+</html>

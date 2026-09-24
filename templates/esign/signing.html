@@ -1,0 +1,63 @@
+{% extends "base.html" %}{% load static %}
+{% block title %}Review and sign · {{ brand.name }}{% endblock %}
+{% block head_extra %}<link rel="stylesheet" href="{% static 'css/signing.css' %}">{% endblock %}
+{% block main_class %}signing-page{% endblock %}
+{% block content %}
+<header class="signing-header">
+  <div class="brand"><img src="/static/{{ brand.logo_path }}" alt="" width="32"><span>{{ brand.name }}</span></div>
+  <div class="signing-title"><strong>{{ signing_session.envelope.subject }}</strong><small>From {{ signing_session.envelope.sender.get_full_name|default:signing_session.envelope.sender.email }}</small></div>
+  <div class="signing-progress"><strong id="progress-label">0 of 0 required fields complete</strong><div><span id="progress-bar"></span></div></div>
+  <button type="button" class="text-button" id="decline-open">Other actions</button>
+</header>
+{% if errors %}<div class="sign-error" role="alert">{% for error in errors %}<p>{{ error }}</p>{% endfor %}</div>{% endif %}
+<main class="signing-workspace" id="signing-workspace">
+  <section class="sign-document-area">
+    <div class="sign-toolbar"><button type="button" data-sign-action="zoom-out">−</button><span id="sign-zoom">100%</span><button type="button" data-sign-action="zoom-in">＋</button><span class="divider"></span><button type="button" data-sign-action="previous">Previous</button><button type="button" data-sign-action="next">Next</button></div>
+    <div class="document-selector" role="tablist">{% for item in signing_session.envelope.envelope_documents.all %}<button type="button" role="tab" data-document-target="document-{{ item.id }}" {% if forloop.first %}aria-selected="true"{% endif %}>{{ item.document.filename }}</button>{% endfor %}</div>
+    <div class="sign-documents">{% for item in signing_session.envelope.envelope_documents.all %}<iframe id="document-{{ item.id }}" src="{% url 'signing_document' token item.id %}#toolbar=0" title="{{ item.document.filename }}" {% if not forloop.first %}hidden{% endif %}></iframe>{% endfor %}</div>
+  </section>
+  <form method="post" id="signing-form">{% csrf_token %}
+    <input type="hidden" name="idempotency_key" value="{{ idempotency_key }}">
+    <input type="hidden" name="signature_text" id="signature-text" value="">
+    <input type="hidden" name="signature_payload" id="signature-payload" value="">
+    <input type="hidden" name="signature_method" id="signature-method" value="ADOPTED">
+    <input type="hidden" name="initials_text" id="initials-text" value="">
+    <input type="hidden" name="initials_payload" id="initials-payload" value="">
+    <aside class="sign-fields">
+      <div class="ceremony-intro"><span class="secure-mark">✓</span><h1>Review and complete</h1><p>{{ signing_session.envelope.message|default:"Please review the documents and complete each required field." }}</p><button class="button button-primary button-full" type="button" id="start-signing">Start</button></div>
+      <div id="field-list">
+      {% for field in signing_session.recipient.fields.all %}
+        <div class="signer-field" data-field-id="{{ field.id }}" data-field-type="{{ field.field_type }}" data-required="{{ field.required|yesno:'true,false' }}">
+          <label for="field-{{ field.id }}">{{ field.label|default:field.get_field_type_display }}{% if field.required %}<span aria-label="required"> *</span>{% endif %}</label>
+          {% if field.field_type == 'SIGNATURE' %}<button class="signature-button" type="button" data-signature-kind="signature"><span>Click to sign</span></button>
+          {% elif field.field_type == 'INITIAL' %}<button class="signature-button initials" type="button" data-signature-kind="initials"><span>Add initials</span></button>
+          {% elif field.field_type == 'CHECKBOX' %}<label class="checkbox-field"><input id="field-{{ field.id }}" type="checkbox" name="{{ field.id }}" value="checked" {% if field.required %}required{% endif %}> I agree</label>
+          {% elif field.field_type == 'RADIO' %}{% for option in field.options %}<label class="radio-field"><input type="radio" name="{{ field.id }}" value="{{ option }}" {% if field.required %}required{% endif %}> {{ option }}</label>{% empty %}<label class="radio-field"><input type="radio" name="{{ field.id }}" value="Yes"> Yes</label><label class="radio-field"><input type="radio" name="{{ field.id }}" value="No"> No</label>{% endfor %}
+          {% elif field.field_type == 'DROPDOWN' %}<select id="field-{{ field.id }}" name="{{ field.id }}" {% if field.required %}required{% endif %}><option value="">Select an option</option>{% for option in field.options %}<option>{{ option }}</option>{% endfor %}</select>
+          {% elif field.field_type == 'DATE_SIGNED' or field.field_type == 'DATE' %}<input id="field-{{ field.id }}" type="date" name="{{ field.id }}" value="{% now 'Y-m-d' %}" {% if field.required %}required{% endif %}>
+          {% elif field.field_type == 'NUMBER' %}<input id="field-{{ field.id }}" type="number" name="{{ field.id }}" value="{{ field.value }}" {% if field.required %}required{% endif %}>
+          {% elif field.field_type == 'EMAIL' %}<input id="field-{{ field.id }}" type="email" name="{{ field.id }}" value="{{ signing_session.recipient.email }}" {% if field.required %}required{% endif %}>
+          {% elif field.field_type == 'NAME' %}<input id="field-{{ field.id }}" name="{{ field.id }}" value="{{ signing_session.recipient.name }}" {% if field.required %}required{% endif %}>
+          {% elif field.field_type == 'NOTE' %}<p class="field-note">{{ field.value|default:field.label }}</p>
+          {% elif field.field_type == 'ATTACHMENT' %}<input id="field-{{ field.id }}" type="file" disabled title="Signer attachments are not enabled for this envelope">
+          {% else %}<input id="field-{{ field.id }}" name="{{ field.id }}" value="{{ field.value }}" minlength="{{ field.validation.minLength|default:'' }}" maxlength="{{ field.validation.maxLength|default:'' }}" {% if field.required %}required{% endif %}>{% endif %}
+        </div>
+      {% endfor %}
+      </div>
+      <div class="sign-navigation"><button class="button" type="button" id="previous-field">Previous</button><button class="button" type="button" id="next-field">Next</button><button class="button button-primary" id="finish-signing" type="submit" disabled>Finish</button></div>
+    </aside>
+  </form>
+</main>
+<dialog id="signature-dialog" aria-labelledby="signature-dialog-title">
+  <form method="dialog" class="signature-dialog-card">
+    <header><div><h2 id="signature-dialog-title">Create your signature</h2><p id="signature-dialog-description">Choose how your signature should appear.</p></div><button value="cancel" aria-label="Close">×</button></header>
+    <div class="signature-tabs" role="tablist"><button type="button" role="tab" aria-selected="true" data-signature-tab="adopt">Adopt</button><button type="button" role="tab" data-signature-tab="draw">Draw</button><button type="button" role="tab" data-signature-tab="upload">Upload</button></div>
+    <section data-signature-panel="adopt"><label>Your name<input id="adopt-name" autocomplete="name" value="{{ signing_session.recipient.name }}"></label><div class="signature-styles" id="signature-styles"><button type="button" data-style="script-one"></button><button type="button" data-style="script-two"></button><button type="button" data-style="script-three"></button></div></section>
+    <section data-signature-panel="draw" hidden><canvas id="signature-canvas" aria-label="Draw your signature"></canvas><div><button type="button" class="text-button" id="signature-undo">Undo</button><button type="button" class="text-button" id="signature-clear">Clear</button></div></section>
+    <section data-signature-panel="upload" hidden><label class="signature-upload">Upload a PNG or JPEG<input id="signature-upload" type="file" accept="image/png,image/jpeg"></label><img id="signature-preview" alt="Signature preview" hidden></section>
+    <footer><button value="cancel" class="button">Cancel</button><button type="button" class="button button-primary" id="signature-adopt">Adopt and sign</button></footer>
+  </form>
+</dialog>
+<dialog id="decline-dialog"><form method="post" action="{% url 'signing_decline' token %}" class="confirm-dialog">{% csrf_token %}<h2>Decline to sign?</h2><p>Declining ends this envelope for every recipient. The sender will be notified.</p><label>Reason<textarea name="reason" rows="4" required></textarea></label><footer><button type="button" class="button" id="decline-cancel">Cancel</button><button class="button danger">Decline envelope</button></footer></form></dialog>
+<script src="{% static 'js/signing.js' %}" defer></script>
+{% endblock %}
